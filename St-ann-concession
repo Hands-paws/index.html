@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>St. Ann Concessions</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background: linear-gradient(to bottom, #ffcccb, #fdfd96);
+            margin: 0;
+            padding: 0;
+        }
+        h1 {
+            color: #333;
+            margin: 20px 0;
+        }
+        .hidden {
+            display: none;
+        }
+        #login-page, #home, #product-page {
+            padding: 20px;
+        }
+        .time-slot {
+            display: inline-block;
+            margin: 10px;
+            padding: 15px 25px;
+            font-size: 18px;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .time-slot:hover {
+            background-color: #0056b3;
+        }
+        .product-container {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .product {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            margin: 10px;
+            width: 150px;
+        }
+        .product-btn {
+            padding: 10px;
+            width: 100%;
+            height: 100px;
+            background-color: #007bff;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            color: white;
+            font-size: 16px;
+            font-weight: bold;
+            transition: transform 0.2s, background-color 0.3s;
+        }
+        .product-btn:hover {
+            transform: scale(1.1);
+            background-color: #0056b3;
+        }
+        .counter {
+            font-size: 18px;
+            margin-top: 10px;
+            color: #333;
+        }
+        .undo-btn {
+            margin-top: 20px;
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #ff4d4d;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        .undo-btn:hover {
+            background-color: #cc0000;
+        }
+        #login-form input {
+            padding: 10px;
+            font-size: 16px;
+            margin: 10px 0;
+        }
+        #login-form button {
+            padding: 10px 20px;
+            font-size: 16px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+        #login-form button:hover {
+            background-color: #0056b3;
+        }
+        .error {
+            color: red;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div id="login-page">
+        <h1>Welcome to St. Ann Concessions</h1>
+        <form id="login-form" onsubmit="return checkPassword()">
+            <label for="password">Enter Password:</label>
+            <br>
+            <input type="password" id="password" placeholder="Password" required>
+            <br>
+            <button type="submit">Submit</button>
+        </form>
+        <p class="error hidden" id="error-message">Incorrect password. Please try again.</p>
+    </div>
+
+    <div id="home" class="hidden">
+        <h1>St. Ann Concessions</h1>
+        <h2>Select a Time Slot</h2>
+        <div id="time-slots">
+            <!-- Time slots will be dynamically inserted here -->
+        </div>
+    </div>
+
+    <div id="product-page" class="hidden">
+        <h2 id="selected-time-slot">Time Slot: </h2>
+        <div class="product-container" id="product-container">
+            <!-- Products will be dynamically inserted here -->
+        </div>
+        <button class="undo-btn" onclick="undoLastAction()">Undo Last Sale</button>
+        <button onclick="goBack()">Back to Time Slots</button>
+    </div>
+
+    <script>
+        const timeSlots = {
+            Friday: ["6:00", "7:10", "8:20"],
+            Saturday: ["8:00", "9:10", "10:20", "11:30", "12:40", "1:50", "3:00", "4:10", "5:20", "6:30", "7:40", "8:50"]
+        };
+
+        const products = [
+            { name: "Skittles", price: 2 },
+            { name: "Starburst", price: 2 },
+            { name: "Hershey's", price: 2 },
+            { name: "Reese's", price: 2 },
+            { name: "Kit Kat", price: 2 },
+            { name: "Chips", price: 1 },
+            { name: "Sprite", price: 2 },
+            { name: "Coke", price: 2 },
+            { name: "Cherry Coke", price: 2 },
+            { name: "Fanta", price: 2 },
+            { name: "Water", price: 2 },
+            { name: "Takis", price: 1 }
+        ];
+        
+        const salesData = {};
+        const lastAction = {};
+
+        const timeSlotContainer = document.getElementById("time-slots");
+        const productContainer = document.getElementById("product-container");
+        const homePage = document.getElementById("home");
+        const productPage = document.getElementById("product-page");
+        const loginPage = document.getElementById("login-page");
+        const errorMessage = document.getElementById("error-message");
+        const selectedTimeSlotTitle = document.getElementById("selected-time-slot");
+
+        function createTimeSlotButtons() {
+            for (const day in timeSlots) {
+                timeSlots[day].forEach(slot => {
+                    const button = document.createElement("button");
+                    button.className = "time-slot";
+                    button.textContent = `${day} ${slot}`;
+                    button.onclick = () => openTimeSlot(day, slot);
+                    timeSlotContainer.appendChild(button);
+                });
+            }
+        }
+
+        function openTimeSlot(day, slot) {
+            const timeSlot = `${day} ${slot}`;
+            selectedTimeSlotTitle.textContent = `Time Slot: ${timeSlot}`;
+            homePage.classList.add("hidden");
+            productPage.classList.remove("hidden");
+
+            productContainer.innerHTML = "";
+            if (!salesData[timeSlot]) salesData[timeSlot] = {};
+            if (!lastAction[timeSlot]) lastAction[timeSlot] = [];
+
+            products.forEach(product => {
+                const productDiv = document.createElement("div");
+                productDiv.className = "product";
+
+                const button = document.createElement("button");
+                button.className = "product-btn";
+                button.textContent = `${product.name} - $${product.price}`;
+                button.onclick = () => increaseCount(timeSlot, product.name);
+
+                const counter = document.createElement("span");
+                counter.className = "counter";
+                counter.id = `${timeSlot}-${product.name}`;
+                counter.textContent = `Sold: ${salesData[timeSlot][product.name] || 0}`;
+
+                productDiv.appendChild(button);
+                productDiv.appendChild(counter);
+                productContainer.appendChild(productDiv);
+            });
+        }
+
+        function increaseCount(timeSlot, product) {
+            if (!salesData[timeSlot][product]) salesData[timeSlot][product] = 0;
+            salesData[timeSlot][product]++;
+            document.getElementById(`${timeSlot}-${product}`).textContent = `Sold: ${salesData[timeSlot][product]}`;
+            lastAction[timeSlot].push({ product, action: "add" });
+        }
+
+        function undoLastAction() {
+            const timeSlot = selectedTimeSlotTitle.textContent.replace("Time Slot: ", "").trim();
+            const lastActionForSlot = lastAction[timeSlot];
+
+            if (lastActionForSlot && lastActionForSlot.length > 0) {
+                const lastActionItem = lastActionForSlot.pop();
+                const { product } = lastActionItem;
+
+                if (salesData[timeSlot][product] && salesData[timeSlot][product] > 0) {
+                    salesData[timeSlot][product]--;
+                    document.getElementById(`${timeSlot}-${product}`).textContent = `Sold: ${salesData[timeSlot][product]}`;
+                }
+            } else {
+                alert("No actions to undo!");
+            }
+        }
+
+        function checkPassword() {
+            const password = document.getElementById("password").value;
+            if (password === "sodaandsnacks") {
+                loginPage.classList.add("hidden");
+                homePage.classList.remove("hidden");
+                return false; // Prevents form submission
+            } else {
+                errorMessage.classList.remove("hidden");
+                return false; // Prevents form submission
+            }
+        }
+
+        function goBack() {
+            homePage.classList.remove("hidden");
+            productPage.classList.add("hidden");
+        }
+
+        createTimeSlotButtons();
+    </script>
+</body>
+</html>
+
+
+
+
+
