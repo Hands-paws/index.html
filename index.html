@@ -12,17 +12,14 @@
             margin: 0;
             padding: 0;
         }
-        h1 {
+        h1, h2 {
             color: #333;
             margin: 20px 0;
         }
         .hidden {
             display: none;
         }
-        #login-page, #home, #product-page {
-            padding: 20px;
-        }
-        .time-slot {
+        .button {
             display: inline-block;
             margin: 10px;
             padding: 15px 25px;
@@ -34,7 +31,7 @@
             cursor: pointer;
             transition: background-color 0.3s;
         }
-        .time-slot:hover {
+        .button:hover {
             background-color: #0056b3;
         }
         .product-container {
@@ -43,71 +40,31 @@
             justify-content: center;
         }
         .product {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
             margin: 10px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
             width: 150px;
+            text-align: center;
         }
-        .product-btn {
+        .product button {
+            display: block;
+            margin: 10px auto;
             padding: 10px;
-            width: 100%;
-            height: 100px;
+            font-size: 16px;
+            color: white;
             background-color: #007bff;
             border: none;
-            border-radius: 10px;
+            border-radius: 5px;
             cursor: pointer;
-            color: white;
-            font-size: 16px;
-            font-weight: bold;
-            transition: transform 0.2s, background-color 0.3s;
         }
-        .product-btn:hover {
-            transform: scale(1.1);
+        .product button:hover {
             background-color: #0056b3;
         }
-        .counter {
-            font-size: 18px;
-            margin-top: 10px;
-            color: #333;
-        }
-        .undo-btn {
+        .summary {
             margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #ff4d4d;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        .undo-btn:hover {
-            background-color: #cc0000;
-        }
-        #login-form input {
-            padding: 10px;
-            font-size: 16px;
-            margin: 10px 0;
-        }
-        #login-form button {
-            padding: 10px 20px;
-            font-size: 16px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            cursor: pointer;
-            transition: background-color 0.3s;
-        }
-        #login-form button:hover {
-            background-color: #0056b3;
-        }
-        .error {
-            color: red;
-            font-size: 14px;
-            margin-top: 10px;
+            font-size: 18px;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -119,26 +76,26 @@
             <br>
             <input type="password" id="password" placeholder="Password" required>
             <br>
-            <button type="submit">Submit</button>
+            <button type="submit" class="button">Submit</button>
         </form>
-        <p class="error hidden" id="error-message">Incorrect password. Please try again.</p>
+        <p class="hidden" id="error-message" style="color: red;">Incorrect password. Please try again.</p>
     </div>
 
-    <div id="home" class="hidden">
+    <div id="home-page" class="hidden">
         <h1>St. Ann Concessions</h1>
         <h2>Select a Time Slot</h2>
-        <div id="time-slots">
-            <!-- Time slots will be dynamically inserted here -->
-        </div>
+        <div id="time-slots"></div>
     </div>
 
     <div id="product-page" class="hidden">
         <h2 id="selected-time-slot">Time Slot: </h2>
-        <div class="product-container" id="product-container">
-            <!-- Products will be dynamically inserted here -->
+        <div class="product-container" id="product-container"></div>
+        <button class="button" onclick="undoLastAction()">Undo Last Sale</button>
+        <button class="button" onclick="goBack()">Back to Time Slots</button>
+        <div class="summary">
+            <p>Total Products Sold: <span id="total-products-sold">0</span></p>
+            <p>Total Revenue: $<span id="total-revenue">0.00</span></p>
         </div>
-        <button class="undo-btn" onclick="undoLastAction()">Undo Last Sale</button>
-        <button onclick="goBack()">Back to Time Slots</button>
     </div>
 
     <script>
@@ -148,94 +105,91 @@
         };
 
         const products = [
-            { name: "Skittles", price: 2 },
-            { name: "Starburst", price: 2 },
-            { name: "Hershey's", price: 2 },
-            { name: "Reese's", price: 2 },
-            { name: "Kit Kat", price: 2 },
-            { name: "Chips", price: 1 },
-            { name: "Sprite", price: 2 },
-            { name: "Coke", price: 2 },
-            { name: "Cherry Coke", price: 2 },
-            { name: "Fanta", price: 2 },
-            { name: "Water", price: 2 },
-            { name: "Takis", price: 1 }
+            { name: "Skittles", price: 2, sold: 0 },
+            { name: "Starburst", price: 2, sold: 0 },
+            { name: "Hershey's", price: 2, sold: 0 },
+            { name: "Reese's", price: 2, sold: 0 },
+            { name: "Kit Kat", price: 2, sold: 0 },
+            { name: "Chips", price: 1, sold: 0 },
+            { name: "Sprite", price: 2, sold: 0 },
+            { name: "Coke", price: 2, sold: 0 },
+            { name: "Cherry Coke", price: 2, sold: 0 },
+            { name: "Fanta", price: 2, sold: 0 },
+            { name: "Water", price: 2, sold: 0 },
+            { name: "Takis", price: 1, sold: 0 },
+            { name: "Airheads", price: 0.5, sold: 0 }
         ];
-        
-        const salesData = {};
-        const lastAction = {};
 
+        let currentSlot = null;
+        let totalProductsSold = 0;
+        let totalRevenue = 0;
+        let lastAction = null;
+
+        const loginPage = document.getElementById("login-page");
+        const homePage = document.getElementById("home-page");
+        const productPage = document.getElementById("product-page");
         const timeSlotContainer = document.getElementById("time-slots");
         const productContainer = document.getElementById("product-container");
-        const homePage = document.getElementById("home");
-        const productPage = document.getElementById("product-page");
-        const loginPage = document.getElementById("login-page");
+
+        const totalProductsSoldElem = document.getElementById("total-products-sold");
+        const totalRevenueElem = document.getElementById("total-revenue");
         const errorMessage = document.getElementById("error-message");
-        const selectedTimeSlotTitle = document.getElementById("selected-time-slot");
 
         function createTimeSlotButtons() {
             for (const day in timeSlots) {
                 timeSlots[day].forEach(slot => {
                     const button = document.createElement("button");
-                    button.className = "time-slot";
+                    button.className = "button";
                     button.textContent = `${day} ${slot}`;
-                    button.onclick = () => openTimeSlot(day, slot);
+                    button.onclick = () => selectTimeSlot(`${day} ${slot}`);
                     timeSlotContainer.appendChild(button);
                 });
             }
         }
 
-        function openTimeSlot(day, slot) {
-            const timeSlot = `${day} ${slot}`;
-            selectedTimeSlotTitle.textContent = `Time Slot: ${timeSlot}`;
-            homePage.classList.add("hidden");
-            productPage.classList.remove("hidden");
-
+        function selectTimeSlot(slot) {
+            currentSlot = slot;
+            document.getElementById("selected-time-slot").textContent = `Time Slot: ${slot}`;
             productContainer.innerHTML = "";
-            if (!salesData[timeSlot]) salesData[timeSlot] = {};
-            if (!lastAction[timeSlot]) lastAction[timeSlot] = [];
-
             products.forEach(product => {
                 const productDiv = document.createElement("div");
                 productDiv.className = "product";
-
-                const button = document.createElement("button");
-                button.className = "product-btn";
-                button.textContent = `${product.name} - $${product.price}`;
-                button.onclick = () => increaseCount(timeSlot, product.name);
-
-                const counter = document.createElement("span");
-                counter.className = "counter";
-                counter.id = `${timeSlot}-${product.name}`;
-                counter.textContent = `Sold: ${salesData[timeSlot][product.name] || 0}`;
-
-                productDiv.appendChild(button);
-                productDiv.appendChild(counter);
+                const productButton = document.createElement("button");
+                productButton.textContent = `${product.name} ($${product.price})`;
+                productButton.onclick = () => purchaseProduct(product);
+                productDiv.appendChild(productButton);
+                const soldDisplay = document.createElement("p");
+                soldDisplay.textContent = `Sold: ${product.sold}`;
+                soldDisplay.id = `sold-${product.name}`;
+                productDiv.appendChild(soldDisplay);
                 productContainer.appendChild(productDiv);
             });
+            homePage.classList.add("hidden");
+            productPage.classList.remove("hidden");
         }
 
-        function increaseCount(timeSlot, product) {
-            if (!salesData[timeSlot][product]) salesData[timeSlot][product] = 0;
-            salesData[timeSlot][product]++;
-            document.getElementById(`${timeSlot}-${product}`).textContent = `Sold: ${salesData[timeSlot][product]}`;
-            lastAction[timeSlot].push({ product, action: "add" });
+        function purchaseProduct(product) {
+            product.sold++;
+            totalProductsSold++;
+            totalRevenue += product.price;
+            lastAction = { product, amount: product.price };
+            document.getElementById(`sold-${product.name}`).textContent = `Sold: ${product.sold}`;
+            totalProductsSoldElem.textContent = totalProductsSold;
+            totalRevenueElem.textContent = totalRevenue.toFixed(2);
         }
 
         function undoLastAction() {
-            const timeSlot = selectedTimeSlotTitle.textContent.replace("Time Slot: ", "").trim();
-            const lastActionForSlot = lastAction[timeSlot];
-
-            if (lastActionForSlot && lastActionForSlot.length > 0) {
-                const lastActionItem = lastActionForSlot.pop();
-                const { product } = lastActionItem;
-
-                if (salesData[timeSlot][product] && salesData[timeSlot][product] > 0) {
-                    salesData[timeSlot][product]--;
-                    document.getElementById(`${timeSlot}-${product}`).textContent = `Sold: ${salesData[timeSlot][product]}`;
-                }
+            if (lastAction) {
+                const { product, amount } = lastAction;
+                product.sold--;
+                totalProductsSold--;
+                totalRevenue -= amount;
+                document.getElementById(`sold-${product.name}`).textContent = `Sold: ${product.sold}`;
+                totalProductsSoldElem.textContent = totalProductsSold;
+                totalRevenueElem.textContent = totalRevenue.toFixed(2);
+                lastAction = null;
             } else {
-                alert("No actions to undo!");
+                alert("No recent action to undo!");
             }
         }
 
@@ -244,22 +198,31 @@
             if (password === "sodaandsnacks") {
                 loginPage.classList.add("hidden");
                 homePage.classList.remove("hidden");
-                return false; // Prevents form submission
             } else {
                 errorMessage.classList.remove("hidden");
-                return false; // Prevents form submission
             }
+            return false;
         }
 
         function goBack() {
-            homePage.classList.remove("hidden");
             productPage.classList.add("hidden");
+            homePage.classList.remove("hidden");
+            totalProductsSold = 0;
+            totalRevenue = 0;
+            totalProductsSoldElem.textContent = totalProductsSold;
+            totalRevenueElem.textContent = totalRevenue.toFixed(2);
+            products.forEach(product => {
+                product.sold = 0;
+                document.getElementById(`sold-${product.name}`).textContent = `Sold: ${product.sold}`;
+            });
         }
 
         createTimeSlotButtons();
     </script>
 </body>
 </html>
+
+
 
 
 
